@@ -44,7 +44,8 @@ public class JsonToCsvConverterTest {
         try {
             
             String testCsvString = Converter.jsonToCsv(jsonString);
-            
+              System.out.println("Expected CSV:\n" + csvString);
+        System.out.println("Actual CSV:\n" + testCsvString);
             assertEquals(csvString, testCsvString);
             
         }

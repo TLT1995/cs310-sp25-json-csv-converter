@@ -2,6 +2,10 @@ package edu.jsu.mcis.cs310;
 
 import com.github.cliftonlabs.json_simple.*;
 import com.opencsv.*;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Converter {
     
@@ -79,7 +83,64 @@ public class Converter {
         try {
         
             // INSERT YOUR CODE HERE
+            // Parsing the CSV String
+            CSVReader csvReader = new CSVReader(new StringReader(csvString));
             
+            // Read all rows from CSV
+            List<String[]> csvData = csvReader.readAll();
+            csvReader.close();
+            
+            // Json objects and arrays to store the converted data
+            JsonObject jsonObject = new JsonObject(); // Stores final structure
+            JsonArray prodNums = new JsonArray(); // Stores the prodNums values
+            JsonArray colHeadings = new JsonArray(); // Stores column headings
+            JsonArray data = new JsonArray(); // Stores row data
+            
+            // Checks to see if csvData is empty, if it is it returns the default empty result
+            if (csvData.isEmpty()){
+                return result;
+            }
+            
+            
+            
+            // Extracting the column names
+            String[] headers = csvData.get(0);
+            for (int i = 0; i < headers.length; i++) {
+                colHeadings.add(headers[i]);
+            }
+            // Getting row data
+            for (int i = 1; i < csvData.size(); i++) {
+                String[] row = csvData.get(i);
+                
+                // prodNums goes into an array
+                prodNums.add(row[0]);
+                
+                JsonArray rowData = new JsonArray();
+                for (int j = 1; j < row.length; j++) {
+                    
+                    // Converts season and episode numbers to integers
+                    if (j == 2 || j == 3){
+                        try {
+                            rowData.add(Integer.parseInt(row[j]));
+                        }
+                        catch (NumberFormatException e){
+                            rowData.add(row[j]);
+                        }
+                    }else {
+                                rowData.add(row[j]);
+                                }
+                    }
+                data.add(rowData);
+            }
+            // JSON structure
+            jsonObject.put("ProdNums", prodNums);
+            jsonObject.put("ColHeadings", colHeadings);
+            jsonObject.put("Data", data);
+            
+            // JSON structure to string
+            result = jsonObject.toJson();
+                      
+          
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -97,6 +158,61 @@ public class Converter {
         try {
             
             // INSERT YOUR CODE HERE
+            // Deserialize Json string to object
+            JsonObject jsonObject = (JsonObject) Jsoner.deserialize(jsonString);
+            
+            // Extract JSON arrays
+            JsonArray prodNums = (JsonArray) jsonObject.get("ProdNums");
+            JsonArray colHeadings = (JsonArray) jsonObject.get("ColHeadings");
+            JsonArray data = (JsonArray) jsonObject.get("Data");
+            
+            // validates that the fields aren't empty
+            if (prodNums == null || colHeadings == null || data == null) {
+                throw new IllegalArgumentException("No null values for fields allowed");
+            }
+            
+            // Initialize list to store CSV rows
+            List<String[]> csvRows = new ArrayList<>();
+            
+            // Add column headers as the first row
+            String[] headerRow = new String[colHeadings.size()];
+            for (int i = 0; i < colHeadings.size(); i++) {
+            headerRow[i] = colHeadings.get(i).toString();
+        }
+            csvRows.add(headerRow);
+            //  Loop through data to get episode details
+            for (int i = 0;  i < data.size(); i++) {
+            JsonArray rowData = (JsonArray) data.get(i);
+            String[] row = new String[rowData.size() + 1];
+            
+            // Adds prodNums to the beginning of the row
+            row[0] = (prodNums.get(i) != null) ? prodNums.get(i).toString() : "";
+            
+            for (int j = 0; j < rowData.size(); j++) {
+                Object value = rowData.get(j);
+                
+                // Converting episode numbers to integers and formatting it while leaving other data as string
+                if (j==2) {
+                    int episodeNumber = ((Number) rowData.get(j)).intValue();
+                    row[j + 1] = String.format("%02d", episodeNumber);
+                    } else if (value instanceof Number) {
+                        row[j + 1] = rowData.get(j).toString();
+                } else {
+                        row[j + 1] = value.toString();
+                    }
+            }
+            csvRows.add(row);
+        }
+            
+            StringWriter stringWriter = new StringWriter();
+            CSVWriter csvWriter = new CSVWriter(stringWriter);
+            
+            
+            csvWriter.writeAll(csvRows);
+            csvWriter.close();
+            
+            result = stringWriter.toString().trim();
+            
             
         }
         catch (Exception e) {
@@ -108,3 +224,4 @@ public class Converter {
     }
     
 }
+    
